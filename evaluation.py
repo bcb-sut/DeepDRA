@@ -1,66 +1,102 @@
 from sklearn.metrics import roc_auc_score, average_precision_score, confusion_matrix, f1_score, precision_score, \
     recall_score, accuracy_score
+from matplotlib import pyplot as plt
+from sklearn import metrics
+import numpy as np
+import pandas as pd
+from statsmodels.stats.weightstats import ttest_ind
 
-from utils import *
 
 
 class Evaluation:
     @staticmethod
     def plot_train_val_accuracy(train_accuracies, val_accuracies, num_epochs):
-        plt.xlabel('epoch')
-        plt.ylabel('accuracy')
-        plt.title('h')
-        plt.plot(range(1, num_epochs + 1), train_accuracies)
-        plt.plot(range(1, num_epochs + 1), val_accuracies)
+        """
+        Plot training and validation accuracies over epochs.
+
+        Parameters:
+        - train_accuracies (list): List of training accuracies.
+        - val_accuracies (list): List of validation accuracies.
+        - num_epochs (int): Number of training epochs.
+
+        Returns:
+        - None
+        """
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.title('Training and Validation Accuracies')
+        plt.plot(range(1, num_epochs + 1), train_accuracies, label='Train Accuracy')
+        plt.plot(range(1, num_epochs + 1), val_accuracies, label='Validation Accuracy')
+        plt.legend()
         plt.show()
 
     @staticmethod
     def plot_train_val_loss(train_loss, val_loss, num_epochs):
-        plt.xlabel('epoch')
-        plt.ylabel('loss')
-        plt.title('h')
-        plt.plot(range(1, num_epochs + 1), train_loss)
-        plt.plot(range(1, num_epochs + 1), val_loss)
+        """
+        Plot training and validation losses over epochs.
+
+        Parameters:
+        - train_loss (list): List of training losses.
+        - val_loss (list): List of validation losses.
+        - num_epochs (int): Number of training epochs.
+
+        Returns:
+        - None
+        """
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Training and Validation Losses')
+        plt.plot(range(1, num_epochs + 1), train_loss, label='Train Loss')
+        plt.plot(range(1, num_epochs + 1), val_loss, label='Validation Loss')
+        plt.legend()
         plt.show()
+
 
     @staticmethod
     def evaluate(all_targets, mlp_output, show_plot=True):
+        """
+        Evaluate model performance based on predictions and targets.
+
+        Parameters:
+        - all_targets (numpy.ndarray): True target labels.
+        - mlp_output (numpy.ndarray): Predicted probabilities.
+        - show_plot (bool): Whether to display ROC and PR curves.
+
+        Returns:
+        - results (dict): Dictionary containing evaluation metrics.
+        """
+        # Step 1: Convert predicted probabilities to binary labels
         predicted_labels = np.where(mlp_output > 0.5, 1, 0)
-        # Collect predictions and targets for later evaluation
         predicted_labels = predicted_labels.reshape(-1)
-        # Convert predictions and targets to numpy arrays
         all_predictions = predicted_labels
 
-        # Calculate and print AUC
+        # Step 2: Calculate and print AUC
         fpr, tpr, thresholds = metrics.roc_curve(all_targets, mlp_output)
         auc = np.round(metrics.auc(fpr, tpr), 2)
 
-        # Calculate and print AUPRC
-        print(all_targets)
+        # Step 3: Calculate and print AUPRC
         precision, recall, thresholds = metrics.precision_recall_curve(all_targets, mlp_output)
         auprc = np.round(metrics.auc(recall, precision), 2)
-        # auprc = average_precision_score(all_targets, mlp_output)
 
-        print('Accuracy: {:.2f}'.format(np.round(accuracy_score(all_targets, all_predictions), 2)))
-        print('AUC: {:.2f}'.format(auc))
-        print('AUPRC: {:.2f}'.format(auprc))
-
-        # Calculate and print confusion matrix
+        # Step 4: Print accuracy, AUC, AUPRC, and confusion matrix
+        accuracy = accuracy_score(all_targets, all_predictions)
         cm = confusion_matrix(all_targets, all_predictions)
-        accuracy = cm.trace() / np.sum(cm)
         precision = cm[0, 0] / (cm[0, 0] + cm[0, 1])
         recall = cm[0, 0] / (cm[0, 0] + cm[1, 0])
         f1_score = 2 * precision * recall / (precision + recall)
-        print('Confusion matrix:\n', cm, sep='')
-        print(f'Accuracy: {accuracy:.3f}, Precision: {precision:.3f}, Recall: {recall:.3f}, F1 score: {f1_score:.3f}')
+        print(f'Accuracy: {accuracy:.2f}')
+        print(f'AUC: {auc:.2f}')
+        print(f'AUPRC: {auprc:.2f}')
+        print(f'Confusion matrix:\n{cm}')
+        print(f'Precision: {precision:.3f}, Recall: {recall:.3f}, F1 score: {f1_score:.3f}')
 
+        # Step 5: Display ROC and PR curves if requested
         if show_plot:
             plt.xlabel('False Positive Rate')
             plt.ylabel('True Positive Rate')
             plt.title(f'ROC Curve: AUC={auc}')
             plt.plot(fpr, tpr)
             plt.show()
-            # print(f'AUC: {auc}')
 
             plt.xlabel('Recall')
             plt.ylabel('Precision')
@@ -68,6 +104,7 @@ class Evaluation:
             plt.plot(recall, precision)
             plt.show()
 
+            # Violin plot for DeepDRA scores
             prediction_targets = pd.DataFrame({}, columns=['Prediction', 'Target'])
 
             res = pd.concat(
@@ -76,11 +113,8 @@ class Evaluation:
 
             res.columns = prediction_targets.columns
             prediction_targets = pd.concat([prediction_targets, res])
-
-            class_one = prediction_targets.loc[prediction_targets['Target'] == 0, 'Prediction'].astype(
-                np.float32).tolist()
-            class_minus_one = prediction_targets.loc[prediction_targets['Target'] == 1, 'Prediction'].astype(
-                np.float32).tolist()
+            class_one = prediction_targets.loc[prediction_targets['Target'] == 0, 'Prediction']
+            class_minus_one = prediction_targets.loc[prediction_targets['Target'] == 1, 'Prediction']
 
             fig, ax = plt.subplots()
             ax.set_ylabel("DeepDRA score")
@@ -92,12 +126,13 @@ class Evaluation:
             p_value = np.format_float_scientific(ttest_ind(class_one, class_minus_one)[1])
             cancer = 'all'
             plt.title(
-                f'Responder/Non responder scores for {cancer} cancer with \np-value ~= {p_value[0]}e{p_value[-3:]} ')
+                f'Responder/Non-responder scores for {cancer} cancer with \np-value ~= {p_value[0]}e{p_value[-3:]} ')
             bp = ax.violinplot(data_to_plot, showextrema=True, showmeans=True, showmedians=True)
             bp['cmeans'].set_color('r')
             bp['cmedians'].set_color('g')
             plt.show()
 
+        # Step 6: Return evaluation metrics in a dictionary
         return {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall, 'F1 score': f1_score, 'AUC': auc,
                 'AUPRC': auprc}
 

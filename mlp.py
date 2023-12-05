@@ -2,7 +2,6 @@ from torch import nn
 from torch import optim, no_grad
 import torch
 from evaluation import Evaluation
-from utils import data_modalities_abbreviation
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):
         self.patience = patience

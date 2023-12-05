@@ -1,5 +1,10 @@
-from utils import *
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+from sklearn.impute import SimpleImputer
 import os
+
+from utils import DRUG_DATA_FOLDER
 
 
 class RawDataLoader:
@@ -38,7 +43,6 @@ class RawDataLoader:
 
         # Step 5: Return the loaded data and adjusted drug screening data
         return data, drug_screen
-
 
     @staticmethod
     def intersect_features(data1, data2):
@@ -109,7 +113,6 @@ class RawDataLoader:
 
         return data[0]
 
-
     @staticmethod
     def load_raw_files(raw_file_directory, data_modalities, intersect=True):
         raw_dict = {}
@@ -131,8 +134,6 @@ class RawDataLoader:
                 df.columns = df.columns.str.replace('_cell_mut', '')
                 df.columns = df.columns.str.replace('_cell_CN', '')
                 df.columns = df.columns.str.replace('_cell_exp', '')
-
-
 
                 # Note that drug_comp raw table has some NA values so we should impute it
                 if any(df.isna()):
@@ -168,13 +169,12 @@ class RawDataLoader:
     @staticmethod
     def load_screening_files(filename="AUC_matS_comb.tsv", sep=',', ):
         df = pd.read_csv(filename, sep=sep, index_col=0)
-        # df = df.drop(['Erlotinib','17-AAG','PD-0325901','PHA-665752','PHA-665752','TAE684','Sorafenib','PLX4720','selumetinib','PD-0332991','Paclitaxel','Nilotinib','Saracatinib'],axis=1)
         return df
-        # return pd.read_csv(os.path.join(DATA_FOLDER, "drug_screening_matrix_GDSC.tsv"), sep='\t', index_col=0)
 
     @staticmethod
     def adjust_screening_raw(drug_screen, data_dict):
         raw_cell_names = []
+        raw_drug_names = []
         for key, value in data_dict.items():
             if 'cell' in key:
                 if len(raw_cell_names) == 0:
@@ -186,7 +186,6 @@ class RawDataLoader:
 
         screening_cell_names = drug_screen.index
         screening_drug_names = drug_screen.columns
-
 
         common_cell_names = list(set(raw_cell_names).intersection(set(screening_cell_names)))
         common_drug_names = list(set(raw_drug_names).intersection(set(screening_drug_names)))

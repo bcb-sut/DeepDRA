@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from autoencoder import Autoencoder
 from evaluation import Evaluation
 from mlp import MLP
-from utils import *
+from utils import MODEL_FOLDER
 
 
 class DeepDRA(nn.Module):
@@ -161,10 +161,6 @@ def test(model, test_loader, reverse=False):
 
         # Apply reverse if specified
         predictions = 1 - mlp_output if reverse else mlp_output
-
-        # # Store predictions and ground truth labels
-        # all_predictions.extend(predictions.cpu().numpy())
-        # all_labels.extend(labels.cpu().numpy())
 
     # Evaluate the predictions using the specified metrics
     result = Evaluation.evaluate(labels, predictions)

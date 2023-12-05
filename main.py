@@ -7,10 +7,10 @@ from DeepDRA import DeepDRA, train, test
 from data_loader import RawDataLoader
 from evaluation import Evaluation
 from utils import *
-from mlp import MLP
 import random
 import torch
 import numpy as np
+import pandas as pd
 
 
 def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes, drug_sizes):
@@ -60,10 +60,10 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     train(model, train_loader, num_epochs=num_epochs)
 
     # Step 7: Save the trained model
-    torch.save(model, 'DeepDRA.pth')
+    torch.save(model,  MODEL_FOLDER + 'DeepDRA.pth')
 
     # Step 8: Load the saved model
-    model = torch.load('DeepDRA.pth')
+    model = torch.load( MODEL_FOLDER + 'DeepDRA.pth')
 
     # Step 9: Convert your test data to PyTorch tensors
     x_cell_test_tensor = torch.Tensor(x_cell_test.values)
