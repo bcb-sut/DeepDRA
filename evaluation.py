@@ -72,11 +72,11 @@ class Evaluation:
 
         # Step 2: Calculate and print AUC
         fpr, tpr, thresholds = metrics.roc_curve(all_targets, mlp_output)
-        auc = np.round(metrics.auc(fpr, tpr), 2)
+        auc = np.round(metrics.auc(fpr, tpr), 3)
 
         # Step 3: Calculate and print AUPRC
         precision, recall, thresholds = metrics.precision_recall_curve(all_targets, mlp_output)
-        auprc = np.round(metrics.auc(recall, precision), 2)
+        auprc = np.round(metrics.auc(recall, precision), 3)
 
         # Step 4: Print accuracy, AUC, AUPRC, and confusion matrix
         accuracy = accuracy_score(all_targets, all_predictions)
@@ -162,4 +162,11 @@ class Evaluation:
         avg_auc = np.mean(result_list['AUC'])
         avg_auprc = np.mean(result_list['AUPRC'])
         std_auprc = np.std(result_list['AUPRC'])
+        avg_accuracy = np.mean(result_list['Accuracy'])
+        avg_precision = np.mean(result_list['Precision'])
+        avg_recal = np.mean(result_list['Recall'])
+        avg_f1score = np.mean(result_list['F1 score'])
+        print(
+            f'AVG: Accuracy: {avg_accuracy:.3f}, Precision: {avg_precision:.3f}, Recall: {avg_recal:.3f}, F1 score: {avg_f1score:.3f}, AUC: {avg_auc:.3f}, ,AUPRC: {avg_auprc:.3f}')
+
         print(" Average AUC: {:.3f} \t Average AUPRC: {:.3f} \t Std AUPRC: {:.3f}".format(avg_auc, avg_auprc, std_auprc))

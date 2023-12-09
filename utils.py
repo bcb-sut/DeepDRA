@@ -7,8 +7,11 @@ RAW_BOTH_DATA_FOLDER = os.path.join(DATA_FOLDER, 'CTRP_GDSC_data')
 DRUG_DATA_FOLDER = os.path.join(DATA_FOLDER, 'drug_data')
 GDSC_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'GDSC_data')
 CCLE_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'CCLE_data')
+CTRP_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'CTRP_data')
+
 GDSC_SCREENING_DATA_FOLDER = os.path.join(GDSC_RAW_DATA_FOLDER, 'drug_screening_matrix_GDSC.tsv')
 CCLE_SCREENING_DATA_FOLDER = os.path.join(CCLE_RAW_DATA_FOLDER, 'drug_screening_matrix_ccle.tsv')
+CTRP_SCREENING_DATA_FOLDER = os.path.join(CTRP_RAW_DATA_FOLDER, 'drug_screening_matrix_ctrp.tsv')
 BOTH_SCREENING_DATA_FOLDER = os.path.join(RAW_BOTH_DATA_FOLDER, 'drug_screening_matrix_gdsc_ctrp.tsv')
 
 CTRP_FOLDER = os.path.join(DATA_FOLDER, 'CTRP')
@@ -27,7 +30,7 @@ SIM_KERNEL = {'cell_CN': ('euclidean', 0.001), 'cell_exp': ('euclidean', 0.01), 
 SAVE_MODEL = False  # Change it to True to save the trained model
 VARIATIONAL_AUTOENCODERS = False
 # DATA_MODALITIES=['cell_CN','cell_exp','cell_methy','cell_mut','drug_comp','drug_DT'] # Change this list to only consider specific data modalities
-DATA_MODALITIES = ['cell_mut', 'drug_desc', 'drug_finger']
+DATA_MODALITIES = ['cell_CN','cell_exp','cell_mut', 'drug_desc']
 RANDOM_SEED = 42  # Must be used wherever can be used
 
 

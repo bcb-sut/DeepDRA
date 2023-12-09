@@ -88,7 +88,7 @@ class DeepDRA(nn.Module):
         return torch.square(w).sum()
 
 
-def train(model, train_loader, num_epochs):
+def train(model, train_loader, val_loader,  num_epochs,class_weights):
     """
     Trains the DeepDRA (Deep Drug Response Anticipation) model.
 
@@ -97,23 +97,44 @@ def train(model, train_loader, num_epochs):
     - train_loader (DataLoader): DataLoader for the training dataset.
     - num_epochs (int): Number of training epochs.
     """
+
+
     autoencoder_loss_fn = nn.MSELoss()
     mlp_loss_fn = nn.BCELoss()
 
-    mlp_optimizer = optim.Adam(model.parameters(), lr=0.0005)
+    train_accuracies = []
+    val_accuracies = []
+
+    train_loss = []
+    val_loss = []
+
+    mlp_optimizer = optim.Adam(model.parameters(), lr=0.0005,)
     scheduler = lr_scheduler.ReduceLROnPlateau(mlp_optimizer, mode='min', factor=0.8, patience=5, verbose=True)
 
+    # Define weight parameters for each loss term
+    cell_ae_weight = 1.0
+    drug_ae_weight = 1.0
+    mlp_weight = 1.0
+
     for epoch in range(num_epochs):
+        model.train()
+        total_train_loss = 0.0
+        train_correct = 0
+        train_total_samples = 0
         for batch_idx, (cell_data, drug_data, target) in enumerate(train_loader):
             mlp_optimizer.zero_grad()
 
             # Forward pass
             cell_decoded_output, drug_decoded_output, mlp_output = model(cell_data, drug_data)
 
+            # Compute class weights for the current batch
+            # batch_class_weights = class_weights[target.long()]
+            # mlp_loss_fn = nn.BCEWithLogitsLoss(weight=batch_class_weights)
+
             # Compute losses
-            cell_ae_loss = autoencoder_loss_fn(cell_decoded_output, cell_data)
-            drug_ae_loss = autoencoder_loss_fn(drug_decoded_output, drug_data)
-            mlp_loss = mlp_loss_fn(mlp_output, target)
+            cell_ae_loss = cell_ae_weight * autoencoder_loss_fn(cell_decoded_output, cell_data)
+            drug_ae_loss = drug_ae_weight * autoencoder_loss_fn(drug_decoded_output, drug_data)
+            mlp_loss = mlp_weight * mlp_loss_fn(mlp_output, target)
 
             # Total loss is the sum of autoencoder losses and MLP loss
             total_loss = drug_ae_loss + cell_ae_loss + mlp_loss
@@ -121,14 +142,56 @@ def train(model, train_loader, num_epochs):
             # Backward pass and optimization
             total_loss.backward()
             mlp_optimizer.step()
+            total_train_loss += total_loss.item()
 
-            # Print progress
-            if batch_idx % 200 == 0:
-                print('Epoch [{}/{}], Total Loss: {:.4f}'.format(
-                    epoch + 1, num_epochs, total_loss.item()))
+            # Calculate accuracy
+            train_predictions = torch.round(mlp_output)
+            train_correct += (train_predictions == target).sum().item()
+            train_total_samples += target.size(0)
+
+        avg_train_loss = total_train_loss / len(train_loader)
+        train_loss.append(avg_train_loss)
+
+        # Validation
+        model.eval()
+        total_val_loss = 0.0
+        correct = 0
+        total_samples = 0
+        with torch.no_grad():
+            for val_batch_idx, (cell_data_val, drug_data_val, val_target) in enumerate(val_loader):
+                cell_decoded_output_val, drug_decoded_output_val, mlp_output_val = model(cell_data_val, drug_data_val)
+                # batch_class_weights = class_weights[val_target.long()]
+                # mlp_loss_fn = nn.BCEWithLogitsLoss(weight=batch_class_weights)
+
+                # Compute losses
+                cell_ae_loss_val = cell_ae_weight * autoencoder_loss_fn(cell_decoded_output_val, cell_data_val)
+                drug_ae_loss_val = drug_ae_weight * autoencoder_loss_fn(drug_decoded_output_val, drug_data_val)
+                mlp_loss_val = mlp_weight * mlp_loss_fn(mlp_output_val, val_target)
+
+                # Total loss is the sum of autoencoder losses and MLP loss
+                total_val_loss = drug_ae_loss_val + cell_ae_loss_val + mlp_loss_val
+
+                # Calculate accuracy
+                val_predictions = torch.round(mlp_output_val)
+                correct += (val_predictions == val_target).sum().item()
+                total_samples += val_target.size(0)
+
+            avg_val_loss = total_val_loss / len(val_loader)
+            val_loss.append(avg_val_loss)
+
+
+        train_accuracy = train_correct / train_total_samples
+        train_accuracies.append(train_accuracy)
+        val_accuracy = correct / total_samples
+        val_accuracies.append(val_accuracy)
+
+        print(
+            'Epoch [{}/{}], Train Loss: {:.4f}, Val Loss: {:.4f}, Train Accuracy: {:.4f}, Val Accuracy: {:.4f}'.format(
+                epoch + 1, num_epochs, avg_train_loss, avg_val_loss, train_accuracy,
+                val_accuracy))
 
         # Learning rate scheduler step
-        scheduler.step(total_loss)
+        scheduler.step(total_train_loss)
 
     # Save the trained model
     torch.save(model.state_dict(), MODEL_FOLDER + 'DeepDRA.pth')

@@ -1,5 +1,6 @@
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
+from sklearn.utils.class_weight import compute_class_weight
 
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
 
@@ -39,7 +40,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     ae_latent_dim = 50
     mlp_input_dim = 2 * ae_latent_dim
     mlp_output_dim = 1
-    num_epochs = 20
+    num_epochs = 25
     model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
 
     # Step 3: Convert your training data to PyTorch tensors
@@ -50,20 +51,34 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     y_train_tensor = torch.Tensor(y_train)
     y_train_tensor = y_train_tensor.unsqueeze(1)
 
+    # Compute class weights
+    classes = [0, 1]  # Assuming binary classification
+    class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=classes, y=y_train),
+                                 dtype=torch.float32)
+
+
+    x_cell_train_tensor, x_cell_val_tensor, x_drug_train_tensor, x_drug_val_tensor, y_train_tensor, y_val_tensor = train_test_split(
+        x_cell_train_tensor, x_drug_train_tensor, y_train_tensor, test_size=0.1,
+        random_state=RANDOM_SEED,
+        shuffle=True)
+
     # Step 4: Create a TensorDataset with the input features and target labels
     train_dataset = TensorDataset(x_cell_train_tensor, x_drug_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(x_cell_val_tensor, x_drug_val_tensor, y_val_tensor)
 
     # Step 5: Create the train_loader
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+
 
     # Step 6: Train the model
-    train(model, train_loader, num_epochs=num_epochs)
+    train(model, train_loader, val_loader, num_epochs,class_weights)
 
     # Step 7: Save the trained model
-    torch.save(model,  MODEL_FOLDER + 'DeepDRA.pth')
+    torch.save(model, 'DeepDRA.pth')
 
     # Step 8: Load the saved model
-    model = torch.load( MODEL_FOLDER + 'DeepDRA.pth')
+    model = torch.load('DeepDRA.pth')
 
     # Step 9: Convert your test data to PyTorch tensors
     x_cell_test_tensor = torch.Tensor(x_cell_test.values)
@@ -99,8 +114,8 @@ def run(k, is_test=False):
 
     # Step 2: Load training data
     train_data, train_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
-                                                            raw_file_directory=GDSC_RAW_DATA_FOLDER,
-                                                            screen_file_directory=GDSC_SCREENING_DATA_FOLDER,
+                                                            raw_file_directory=RAW_BOTH_DATA_FOLDER,
+                                                            screen_file_directory=BOTH_SCREENING_DATA_FOLDER,
                                                             sep="\t")
 
     # Step 3: Load test data if applicable
@@ -117,18 +132,19 @@ def run(k, is_test=False):
     X_cell_train, X_drug_train, y_train, cell_sizes, drug_sizes = RawDataLoader.prepare_input_data(train_data,
                                                                                                    train_drug_screen)
 
+    rus = RandomUnderSampler(sampling_strategy="majority", random_state=RANDOM_SEED)
+    dataset = pd.concat([X_cell_train, X_drug_train], axis=1)
+    dataset.index = X_cell_train.index
+    dataset, y_train = rus.fit_resample(dataset, y_train)
+    X_cell_train = dataset.iloc[:, :sum(cell_sizes)]
+    X_drug_train = dataset.iloc[:, sum(cell_sizes):]
+
     # Step 5: Loop over k runs
     for i in range(k):
         print('Run {}'.format(i))
 
         # Step 6: If is_test is True, perform random under-sampling on the training data
         if is_test:
-            rus = RandomUnderSampler(sampling_strategy="majority", random_state=RANDOM_SEED)
-            dataset = pd.concat([X_cell_train, X_drug_train], axis=1)
-            dataset.index = X_cell_train.index
-            dataset, y_train = rus.fit_resample(dataset, y_train)
-            X_cell_train = dataset.iloc[:, :sum(cell_sizes)]
-            X_drug_train = dataset.iloc[:, sum(cell_sizes):]
 
             # Step 7: Train and evaluate the DeepDRA model on test data
             results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
@@ -138,7 +154,7 @@ def run(k, is_test=False):
             X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test = train_test_split(X_cell_train,
                                                                                                      X_drug_train, y_train,
                                                                                                      test_size=0.2,
-                                                                                                     random_state=44,
+                                                                                                     random_state=RANDOM_SEED,
                                                                                                      shuffle=True)
             # Step 9: Train and evaluate the DeepDRA model on the split data
             results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
