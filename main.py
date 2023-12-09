@@ -111,8 +111,6 @@ def run(k, is_test=False):
     - history (dict): Dictionary containing evaluation metrics for each run.
     """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(torch.cuda.is_available())
-    torch.zeros(1).cuda()
     # Step 1: Initialize a dictionary to store evaluation metrics
     history = {'AUC': [], 'AUPRC': [], "Accuracy": [], "Precision": [], "Recall": [], "F1 score": []}
 
@@ -176,4 +174,4 @@ if __name__ == '__main__':
     torch.manual_seed(RANDOM_SEED)
     random.seed(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)
-    run(10, is_test=True)
+    run(10, is_test=False)
