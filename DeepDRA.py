@@ -88,7 +88,7 @@ class DeepDRA(nn.Module):
         return torch.square(w).sum()
 
 
-def train(model, train_loader, val_loader,  num_epochs,class_weights):
+def train(model, train_loader, val_loader,  num_epochs, class_weights):
     """
     Trains the DeepDRA (Deep Drug Response Anticipation) model.
 

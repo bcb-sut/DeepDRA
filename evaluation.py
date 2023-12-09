@@ -170,3 +170,5 @@ class Evaluation:
             f'AVG: Accuracy: {avg_accuracy:.3f}, Precision: {avg_precision:.3f}, Recall: {avg_recal:.3f}, F1 score: {avg_f1score:.3f}, AUC: {avg_auc:.3f}, ,AUPRC: {avg_auprc:.3f}')
 
         print(" Average AUC: {:.3f} \t Average AUPRC: {:.3f} \t Std AUPRC: {:.3f}".format(avg_auc, avg_auprc, std_auprc))
+        return {'Accuracy': avg_accuracy, 'Precision': avg_precision, 'Recall': avg_recal, 'F1 score': avg_f1score, 'AUC': avg_auc,
+                'AUPRC': avg_auprc}

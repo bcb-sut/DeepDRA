@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
+from sklearn.model_selection import KFold
 
 from DeepDRA import DeepDRA, train, test
 from data_loader import RawDataLoader
@@ -13,6 +14,14 @@ import torch
 import numpy as np
 import pandas as pd
 
+# Step 1: Define the batch size for training
+batch_size = 64
+
+# Step 2: Instantiate the combined model
+ae_latent_dim = 50
+mlp_input_dim = 2 * ae_latent_dim
+mlp_output_dim = 1
+num_epochs = 25
 
 def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes, drug_sizes,device):
     """
@@ -33,14 +42,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     - result: Evaluation result on the test set.
     """
 
-    # Step 1: Define the batch size for training
-    batch_size = 64
 
-    # Step 2: Instantiate the combined model
-    ae_latent_dim = 50
-    mlp_input_dim = 2 * ae_latent_dim
-    mlp_output_dim = 1
-    num_epochs = 25
     model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
     model.to(device)
     # Step 3: Convert your training data to PyTorch tensors
@@ -98,8 +100,53 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     # Step 11: Test the model
     return test(model, test_loader)
 
+def cv_train(x_cell_train, x_drug_train, y_train, cell_sizes,
+                                    drug_sizes, device, k=5, ):
 
-def run(k, is_test=False):
+
+    splits = KFold(n_splits=k, shuffle=True, random_state=RANDOM_SEED)
+    history = {'AUC': [], 'AUPRC': [], "Accuracy": [], "Precision": [], "Recall": [], "F1 score": []}
+
+    for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(x_cell_train)))):
+        print('Fold {}'.format(fold + 1))
+
+        train_sampler = SubsetRandomSampler(train_idx)
+        test_sampler = SubsetRandomSampler(val_idx)
+        model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
+        # Convert your training data to PyTorch tensors
+        x_cell_train_tensor = torch.Tensor(x_cell_train.values)
+        x_drug_train_tensor = torch.Tensor(x_drug_train.values)
+
+        y_train_tensor = torch.Tensor(y_train)
+        y_train_tensor = y_train_tensor.unsqueeze(1)
+
+        # Compute class weights
+        classes = [0, 1]  # Assuming binary classification
+        class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=classes, y=y_train),
+                                     dtype=torch.float32)
+
+        # Create a TensorDataset with the input features and target labels
+        train_dataset = TensorDataset(x_cell_train_tensor, x_drug_train_tensor, y_train_tensor)
+
+        # Create the train_loader
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler)
+        # Train the model
+        train(model, train_loader,train_loader, num_epochs, class_weights)
+
+
+        # Create a TensorDataset with the input features and target labels
+        test_loader = DataLoader(train_dataset, batch_size=len(x_cell_train), sampler=test_sampler)
+
+        # Test the model
+        results = test(model, test_loader)
+
+        # Step 10: Add results to the history dictionary
+        Evaluation.add_results(history, results)
+
+
+    return Evaluation.show_final_results(history)
+
+def run(k, is_test=False ):
     """
     Run the training and evaluation process k times.
 
@@ -127,19 +174,22 @@ def run(k, is_test=False):
                                                               screen_file_directory=CCLE_SCREENING_DATA_FOLDER,
                                                               sep="\t")
         train_data, test_data = RawDataLoader.data_features_intersect(train_data, test_data)
-        X_cell_test, X_drug_test, y_test, cell_sizes, drug_sizes = RawDataLoader.prepare_input_data(test_data,
-                                                                                                    test_drug_screen)
+
 
     # Step 4: Prepare input data for training
-    X_cell_train, X_drug_train, y_train, cell_sizes, drug_sizes = RawDataLoader.prepare_input_data(train_data,
+    x_cell_train, x_drug_train, y_train, cell_sizes, drug_sizes = RawDataLoader.prepare_input_data(train_data,
                                                                                                    train_drug_screen)
 
+    if is_test:
+        x_cell_test, x_drug_test, y_test, cell_sizes, drug_sizes = RawDataLoader.prepare_input_data(test_data,
+                                                                                                    test_drug_screen)
+
     rus = RandomUnderSampler(sampling_strategy="majority", random_state=RANDOM_SEED)
-    dataset = pd.concat([X_cell_train, X_drug_train], axis=1)
-    dataset.index = X_cell_train.index
+    dataset = pd.concat([x_cell_train, x_drug_train], axis=1)
+    dataset.index = x_cell_train.index
     dataset, y_train = rus.fit_resample(dataset, y_train)
-    X_cell_train = dataset.iloc[:, :sum(cell_sizes)]
-    X_drug_train = dataset.iloc[:, sum(cell_sizes):]
+    x_cell_train = dataset.iloc[:, :sum(cell_sizes)]
+    x_drug_train = dataset.iloc[:, sum(cell_sizes):]
 
     # Step 5: Loop over k runs
     for i in range(k):
@@ -149,18 +199,21 @@ def run(k, is_test=False):
         if is_test:
 
             # Step 7: Train and evaluate the DeepDRA model on test data
-            results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
+            results = train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes,
                                     drug_sizes, device)
+
         else:
-            # Step 8: Split the data into training and validation sets
-            X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test = train_test_split(X_cell_train,
-                                                                                                     X_drug_train, y_train,
-                                                                                                     test_size=0.2,
-                                                                                                     random_state=RANDOM_SEED,
-                                                                                                     shuffle=True)
-            # Step 9: Train and evaluate the DeepDRA model on the split data
-            results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
-                                    drug_sizes, device)
+            # # Step 8: Split the data into training and validation sets
+            # X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test = train_test_split(X_cell_train,
+            #                                                                                          X_drug_train, y_train,
+            #                                                                                          test_size=0.2,
+            #                                                                                          random_state=RANDOM_SEED,
+            #                                                                                          shuffle=True)
+            # # Step 9: Train and evaluate the DeepDRA model on the split data
+            # results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
+            #                         drug_sizes, device)
+
+            results = cv_train(x_cell_train, x_drug_train, y_train, cell_sizes, drug_sizes, device, k=5)
 
         # Step 10: Add results to the history dictionary
         Evaluation.add_results(history, results)
