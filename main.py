@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 
-def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes, drug_sizes):
+def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes, drug_sizes,device):
     """
 
     Train and evaluate the DeepDRA model.
@@ -42,7 +42,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     mlp_output_dim = 1
     num_epochs = 25
     model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
-
+    model.to(device)
     # Step 3: Convert your training data to PyTorch tensors
     x_cell_train_tensor = torch.Tensor(x_cell_train.values)
     x_drug_train_tensor = torch.Tensor(x_drug_train.values)
@@ -51,6 +51,9 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     y_train_tensor = torch.Tensor(y_train)
     y_train_tensor = y_train_tensor.unsqueeze(1)
 
+    x_cell_train_tensor.to(device)
+    x_drug_train_tensor.to(device)
+    y_train_tensor.to(device)
     # Compute class weights
     classes = [0, 1]  # Assuming binary classification
     class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=classes, y=y_train),
@@ -69,7 +72,6 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     # Step 5: Create the train_loader
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-
 
     # Step 6: Train the model
     train(model, train_loader, val_loader, num_epochs,class_weights)
@@ -108,7 +110,9 @@ def run(k, is_test=False):
     Returns:
     - history (dict): Dictionary containing evaluation metrics for each run.
     """
-
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(torch.cuda.is_available())
+    torch.zeros(1).cuda()
     # Step 1: Initialize a dictionary to store evaluation metrics
     history = {'AUC': [], 'AUPRC': [], "Accuracy": [], "Precision": [], "Recall": [], "F1 score": []}
 
@@ -148,7 +152,7 @@ def run(k, is_test=False):
 
             # Step 7: Train and evaluate the DeepDRA model on test data
             results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
-                                    drug_sizes)
+                                    drug_sizes, device)
         else:
             # Step 8: Split the data into training and validation sets
             X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test = train_test_split(X_cell_train,
@@ -158,7 +162,7 @@ def run(k, is_test=False):
                                                                                                      shuffle=True)
             # Step 9: Train and evaluate the DeepDRA model on the split data
             results = train_DeepDRA(X_cell_train, X_cell_test, X_drug_train, X_drug_test, y_train, y_test, cell_sizes,
-                                    drug_sizes)
+                                    drug_sizes, device)
 
         # Step 10: Add results to the history dictionary
         Evaluation.add_results(history, results)
