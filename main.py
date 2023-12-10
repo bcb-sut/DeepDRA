@@ -19,8 +19,6 @@ batch_size = 64
 
 # Step 2: Instantiate the combined model
 ae_latent_dim = 50
-mlp_input_dim = 2 * ae_latent_dim
-mlp_output_dim = 1
 num_epochs = 25
 
 def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train, y_test, cell_sizes, drug_sizes,device):
@@ -43,7 +41,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     """
 
 
-    model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
+    model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim)
     model.to(device)
     # Step 3: Convert your training data to PyTorch tensors
     x_cell_train_tensor = torch.Tensor(x_cell_train.values)
@@ -112,7 +110,7 @@ def cv_train(x_cell_train, x_drug_train, y_train, cell_sizes,
 
         train_sampler = SubsetRandomSampler(train_idx)
         test_sampler = SubsetRandomSampler(val_idx)
-        model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
+        model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim)
         # Convert your training data to PyTorch tensors
         x_cell_train_tensor = torch.Tensor(x_cell_train.values)
         x_drug_train_tensor = torch.Tensor(x_drug_train.values)
@@ -163,8 +161,8 @@ def run(k, is_test=False ):
 
     # Step 2: Load training data
     train_data, train_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
-                                                            raw_file_directory=RAW_BOTH_DATA_FOLDER,
-                                                            screen_file_directory=BOTH_SCREENING_DATA_FOLDER,
+                                                            raw_file_directory=GDSC_RAW_DATA_FOLDER,
+                                                            screen_file_directory=GDSC_SCREENING_DATA_FOLDER,
                                                             sep="\t")
 
     # Step 3: Load test data if applicable
