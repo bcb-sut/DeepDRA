@@ -165,6 +165,7 @@ def run(k, is_test=False ):
                                                             screen_file_directory=GDSC_SCREENING_DATA_FOLDER,
                                                             sep="\t")
 
+
     # Step 3: Load test data if applicable
     if is_test:
         test_data, test_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
@@ -225,4 +226,4 @@ if __name__ == '__main__':
     torch.manual_seed(RANDOM_SEED)
     random.seed(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)
-    run(10, is_test=False)
+    run(10, is_test=True)

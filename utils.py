@@ -8,6 +8,7 @@ DRUG_DATA_FOLDER = os.path.join(DATA_FOLDER, 'drug_data')
 GDSC_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'GDSC_data')
 CCLE_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'CCLE_data')
 CTRP_RAW_DATA_FOLDER = os.path.join(DATA_FOLDER, 'CTRP_data')
+SIM_DATA_FOLDER = os.path.join(DATA_FOLDER, 'similarity_data')
 
 GDSC_SCREENING_DATA_FOLDER = os.path.join(GDSC_RAW_DATA_FOLDER, 'drug_screening_matrix_GDSC.tsv')
 CCLE_SCREENING_DATA_FOLDER = os.path.join(CCLE_RAW_DATA_FOLDER, 'drug_screening_matrix_ccle.tsv')

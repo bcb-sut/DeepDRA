@@ -9,7 +9,7 @@ from utils import DRUG_DATA_FOLDER
 
 class RawDataLoader:
     @staticmethod
-    def load_data(data_modalities, raw_file_directory, screen_file_directory, sep):
+    def load_data(data_modalities, raw_file_directory, screen_file_directory, sep, drug_directory=DRUG_DATA_FOLDER):
         """
         Load raw data and screening data, perform intersection, and adjust screening data.
 
@@ -29,7 +29,7 @@ class RawDataLoader:
 
         # Step 2: Load drug data files for specified data modalities
         drug_data = RawDataLoader.load_raw_files(intersect=True, data_modalities=data_modalities,
-                                                 raw_file_directory=DRUG_DATA_FOLDER)
+                                                 raw_file_directory=drug_directory)
 
         # Step 3: Update the 'data' dictionary with drug data
         data.update(drug_data)
@@ -135,14 +135,11 @@ class RawDataLoader:
                 df.columns = df.columns.str.replace('_cell_CN', '')
                 df.columns = df.columns.str.replace('_cell_exp', '')
 
-                # Note that drug_comp raw table has some NA values so we should impute it
-                if any(df.isna()):
-                    df = pd.DataFrame(SimpleImputer(strategy='mean').fit_transform(df),
-                                      columns=df.columns).set_index(df.index)
-                if file.startswith('drug_comp'):  # We need to normalize the drug_data comp dataset
-                    df = ((df - df.mean()) / df.std()).fillna(0)
-                elif file.startswith('drug_desc'):  # We need to normalize the drug_data comp dataset
-                    df = ((df - df.mean()) / df.std()).fillna(0)
+                df = (df - df.min()) / (df.max() - df.min())
+                df = df.fillna(0)
+
+                print("has null:")
+                print(df.isnull().sum().sum())
                 if intersect:
                     if file.startswith('cell'):
                         if cell_line_names:

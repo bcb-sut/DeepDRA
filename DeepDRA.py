@@ -140,6 +140,8 @@ def train(model, train_loader, val_loader,  num_epochs,class_weights):
 
             # Backward pass and optimization
             total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+
             mlp_optimizer.step()
             total_train_loss += total_loss.item()
 

@@ -53,7 +53,7 @@ class Evaluation:
 
 
     @staticmethod
-    def evaluate(all_targets, mlp_output, show_plot=True):
+    def evaluate(all_targets, mlp_output, show_plot=False):
         """
         Evaluate model performance based on predictions and targets.
 
