@@ -66,7 +66,9 @@ class Evaluation:
         - results (dict): Dictionary containing evaluation metrics.
         """
         # Step 1: Convert predicted probabilities to binary labels
-        predicted_labels = np.where(mlp_output > 0.5, 1, 0)
+        mlp_output = mlp_output.cpu()
+        all_targets = all_targets.cpu()
+        predicted_labels = np.where(mlp_output.cpu() > 0.5, 1, 0)
         predicted_labels = predicted_labels.reshape(-1)
         all_predictions = predicted_labels
 
