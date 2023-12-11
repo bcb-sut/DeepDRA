@@ -27,7 +27,7 @@ class MLP(nn.Module):
             nn.Linear(input_dim, 128),
             nn.ReLU(inplace=True),
             nn.Linear(128, output_dim),
-            nn.Hardsigmoid(),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):

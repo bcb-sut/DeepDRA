@@ -22,8 +22,7 @@ class DeepDRA(nn.Module):
     - mlp_output_dim (int): Output dimension for the MLP.
     """
 
-    def __init__(self, cell_modality_sizes, drug_modality_sizes, cell_ae_latent_dim, drug_ae_latent_dim, mlp_input_dim,
-                 mlp_output_dim):
+    def __init__(self, cell_modality_sizes, drug_modality_sizes, cell_ae_latent_dim, drug_ae_latent_dim):
         super(DeepDRA, self).__init__()
 
         # Initialize cell and drug autoencoders
@@ -35,7 +34,7 @@ class DeepDRA(nn.Module):
         self.drug_modality_sizes = drug_modality_sizes
 
         # Initialize MLP
-        self.mlp = MLP(mlp_input_dim, mlp_output_dim)
+        self.mlp = MLP(cell_ae_latent_dim+drug_ae_latent_dim, 1)
 
     def forward(self, cell_x, drug_x):
         """
@@ -141,6 +140,8 @@ def train(model, train_loader, val_loader,  num_epochs,class_weights):
 
             # Backward pass and optimization
             total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+
             mlp_optimizer.step()
             total_train_loss += total_loss.item()
 
