@@ -161,8 +161,8 @@ def run(k, is_test=False ):
 
     # Step 2: Load training data
     train_data, train_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
-                                                            raw_file_directory=RAW_BOTH_DATA_FOLDER,
-                                                            screen_file_directory=BOTH_SCREENING_DATA_FOLDER,
+                                                            raw_file_directory=GDSC_RAW_DATA_FOLDER,
+                                                            screen_file_directory=GDSC_SCREENING_DATA_FOLDER,
                                                             sep="\t")
 
 
@@ -170,7 +170,7 @@ def run(k, is_test=False ):
     if is_test:
         test_data, test_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
                                                               raw_file_directory=CCLE_RAW_DATA_FOLDER,
-                                                              screen_file_directory=CCLE_SCREENING_DATA_FOLDER,
+                                                              screen_file_directory=CTRP_SCREENING_DATA_FOLDER,
                                                               sep="\t")
         train_data, test_data = RawDataLoader.data_features_intersect(train_data, test_data)
 
@@ -226,4 +226,4 @@ if __name__ == '__main__':
     torch.manual_seed(RANDOM_SEED)
     random.seed(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)
-    run(10, is_test=True)
+    run(30, is_test=False)
