@@ -42,7 +42,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     mlp_output_dim = 1
     num_epochs = 25
     model = DeepDRA(cell_sizes, drug_sizes, ae_latent_dim, ae_latent_dim, mlp_input_dim, mlp_output_dim)
-    model.to(device)
+    model= model.to(device)
     # Step 3: Convert your training data to PyTorch tensors
     x_cell_train_tensor = torch.Tensor(x_cell_train.values)
     x_drug_train_tensor = torch.Tensor(x_drug_train.values)
@@ -51,9 +51,7 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     y_train_tensor = torch.Tensor(y_train)
     y_train_tensor = y_train_tensor.unsqueeze(1)
 
-    x_cell_train_tensor.to(device)
-    x_drug_train_tensor.to(device)
-    y_train_tensor.to(device)
+
     # Compute class weights
     classes = [0, 1]  # Assuming binary classification
     class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=classes, y=y_train),
@@ -65,10 +63,10 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
         random_state=RANDOM_SEED,
         shuffle=True)
 
-    # Step 4: Create a TensorDataset with the input features and target labels
-    train_dataset = TensorDataset(x_cell_train_tensor, x_drug_train_tensor, y_train_tensor)
-    val_dataset = TensorDataset(x_cell_val_tensor, x_drug_val_tensor, y_val_tensor)
 
+    # Step 4: Create a TensorDataset with the input features and target labels
+    train_dataset = TensorDataset(x_cell_train_tensor.to(device), x_drug_train_tensor.to(device), y_train_tensor.to(device))
+    val_dataset = TensorDataset(x_cell_val_tensor.to(device), x_drug_val_tensor.to(device), y_val_tensor.to(device))
     # Step 5: Create the train_loader
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
@@ -85,11 +83,11 @@ def train_DeepDRA(x_cell_train, x_cell_test, x_drug_train, x_drug_test, y_train,
     # Step 9: Convert your test data to PyTorch tensors
     x_cell_test_tensor = torch.Tensor(x_cell_test.values)
     x_drug_test_tensor = torch.Tensor(x_drug_test.values)
-    y_test_tensor = torch.Tensor(y_test)
+    y_test_tensor = torch.Tensor(y_test).to(device)
 
     # normalize data
-    x_cell_test_tensor = torch.nn.functional.normalize(x_cell_test_tensor, dim=0)
-    x_drug_test_tensor = torch.nn.functional.normalize(x_drug_test_tensor, dim=0)
+    x_cell_test_tensor = torch.nn.functional.normalize(x_cell_test_tensor, dim=0).to(device)
+    x_drug_test_tensor = torch.nn.functional.normalize(x_drug_test_tensor, dim=0).to(device)
 
     # Step 10: Create a TensorDataset with the input features and target labels for testing
     test_dataset = TensorDataset(x_cell_test_tensor, x_drug_test_tensor, y_test_tensor)
@@ -111,8 +109,7 @@ def run(k, is_test=False):
     - history (dict): Dictionary containing evaluation metrics for each run.
     """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(torch.cuda.is_available())
-    torch.zeros(1).cuda()
+    print(device)
     # Step 1: Initialize a dictionary to store evaluation metrics
     history = {'AUC': [], 'AUPRC': [], "Accuracy": [], "Precision": [], "Recall": [], "F1 score": []}
 
