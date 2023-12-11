@@ -72,11 +72,11 @@ class Evaluation:
 
         # Step 2: Calculate and print AUC
         fpr, tpr, thresholds = metrics.roc_curve(all_targets, mlp_output)
-        auc = np.round(metrics.auc(fpr, tpr), 3)
+        auc = np.round(metrics.auc(fpr, tpr), 4)
 
         # Step 3: Calculate and print AUPRC
         precision, recall, thresholds = metrics.precision_recall_curve(all_targets, mlp_output)
-        auprc = np.round(metrics.auc(recall, precision), 3)
+        auprc = np.round(metrics.auc(recall, precision), 4)
 
         # Step 4: Print accuracy, AUC, AUPRC, and confusion matrix
         accuracy = accuracy_score(all_targets, all_predictions)
@@ -84,11 +84,10 @@ class Evaluation:
         precision = cm[0, 0] / (cm[0, 0] + cm[0, 1])
         recall = cm[0, 0] / (cm[0, 0] + cm[1, 0])
         f1_score = 2 * precision * recall / (precision + recall)
-        print(f'Accuracy: {accuracy:.2f}')
-        print(f'AUC: {auc:.2f}')
-        print(f'AUPRC: {auprc:.2f}')
+
         print(f'Confusion matrix:\n{cm}')
-        print(f'Precision: {precision:.3f}, Recall: {recall:.3f}, F1 score: {f1_score:.3f}')
+        print(
+            f'Accuracy: {accuracy:.3f}, Precision: {precision:.3f}, Recall: {recall:.3f}, F1 score: {f1_score:.3f}, AUC: {auc:.3f}, ,AUPRC: {auprc:.3f}')
 
         # Step 5: Display ROC and PR curves if requested
         if show_plot:

@@ -161,8 +161,8 @@ def run(k, is_test=False ):
 
     # Step 2: Load training data
     train_data, train_drug_screen = RawDataLoader.load_data(data_modalities=DATA_MODALITIES,
-                                                            raw_file_directory=GDSC_RAW_DATA_FOLDER,
-                                                            screen_file_directory=GDSC_SCREENING_DATA_FOLDER,
+                                                            raw_file_directory=RAW_BOTH_DATA_FOLDER,
+                                                            screen_file_directory=BOTH_SCREENING_DATA_FOLDER,
                                                             sep="\t")
 
 

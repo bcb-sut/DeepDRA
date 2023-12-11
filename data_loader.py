@@ -137,9 +137,6 @@ class RawDataLoader:
 
                 df = (df - df.min()) / (df.max() - df.min())
                 df = df.fillna(0)
-
-                print("has null:")
-                print(df.isnull().sum().sum())
                 if intersect:
                     if file.startswith('cell'):
                         if cell_line_names:
