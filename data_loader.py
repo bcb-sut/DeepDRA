@@ -134,7 +134,6 @@ class RawDataLoader:
                 df.columns = df.columns.str.replace('_cell_mut', '')
                 df.columns = df.columns.str.replace('_cell_CN', '')
                 df.columns = df.columns.str.replace('_cell_exp', '')
-
                 df = (df - df.min()) / (df.max() - df.min())
                 df = df.fillna(0)
                 if intersect:

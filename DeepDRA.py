@@ -170,7 +170,7 @@ def train(model, train_loader, val_loader,  num_epochs,class_weights):
                 mlp_loss_val = mlp_weight * mlp_loss_fn(mlp_output_val, val_target)
 
                 # Total loss is the sum of autoencoder losses and MLP loss
-                total_val_loss = drug_ae_loss_val + cell_ae_loss_val + mlp_loss_val
+                total_val_loss = (drug_ae_loss_val + cell_ae_loss_val + mlp_loss_val).item()
 
                 # Calculate accuracy
                 val_predictions = torch.round(mlp_output_val)
